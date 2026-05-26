@@ -5,10 +5,13 @@ import numpy as np
 app = Flask(__name__)
 model = joblib.load('model_xgb.pkl')
 
+# Nomi delle stazioni
 STATIONS = ['Aotizhongxin', 'Changping', 'Dingling', 'Dongsi', 'Guanyuan', 'Gucheng', 'Huairou', 'Nongzhanguan', 'Shunyi', 'Tiantan', 'Wanliu', 'Wanshouxigong']
 
+# Direzioni del vento
 WD_OPTIONS = ['E', 'ENE', 'ESE', 'N', 'NE', 'NNE', 'NNW', 'NW', 'S', 'SE', 'SSE', 'SSW', 'SW', 'W', 'WNW', 'WSW']
 
+# Valori medi di PM2.5 per stazione
 STATION_ENC = {
     'Aotizhongxin': 83.4, 'Changping': 71.2, 'Dingling': 63.8,
     'Dongsi': 85.1, 'Guanyuan': 82.7, 'Gucheng': 88.3,
@@ -16,8 +19,10 @@ STATION_ENC = {
     'Tiantan': 83.6, 'Wanliu': 82.1, 'Wanshouxigong': 84.2
 }
 
+# Mappatura direzione del vento -> indice numerico
 WD_ENC = {wd: i for i, wd in enumerate(WD_OPTIONS)}
 
+# Classificazione AQI per PM2.5
 AQI_BINS = [
     (50,  'Eccellente',              '#2ecc71'),
     (100, 'Buono',                   '#f1c40f'),
@@ -27,12 +32,13 @@ AQI_BINS = [
     (float('inf'), 'Seriamente Inquinato', '#922b21'),
 ]
 
+# Pagina HTML
 HTML = """
 <!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>PM2.5 Predictor</title>
+  <title>Air Quality Predictor</title>
   <style>
     body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 1rem; }
     h1   { font-size: 1.6rem; margin-bottom: 0.3rem; }
@@ -52,11 +58,11 @@ HTML = """
   </style>
 </head>
 <body>
-  <h1>PM2.5 Predictor</h1>
+  <h1>Air Quality Predictor</h1>
   <p>Inserisci i parametri per stimare la concentrazione di PM2.5 (µg/m³).</p>
 
   <form id="form">
-    <h3>Stazione e Tempo</h3>
+    <h3>Stazione e Orario</h3>
     <div class="grid">
       <label>Stazione
         <select name="station">
@@ -64,8 +70,8 @@ HTML = """
         </select>
       </label>
       <label>Ora (0–23)<input type="number" name="hour" min="0" max="23" value="12"></label>
-      <label>Mese (1–12)<input type="number" name="month" min="1" max="12" value="6"></label>
       <label>Giorno settimana (0=Lun)<input type="number" name="dow" min="0" max="6" value="0"></label>
+      <label>Mese (1–12)<input type="number" name="month" min="1" max="12" value="6"></label>
     </div>
 
     <h3>Inquinanti</h3>
@@ -76,7 +82,7 @@ HTML = """
       <label>O₃ (µg/m³)<input type="number" name="O3" step="0.1" value="60"></label>
     </div>
 
-    <h3>Meteorologia</h3>
+    <h3>Meteo</h3>
     <div class="grid">
       <label>TEMP (°C)<input type="number" name="TEMP" step="0.1" value="15"></label>
       <label>PRES (hPa)<input type="number" name="PRES" step="0.1" value="1010"></label>
@@ -90,7 +96,7 @@ HTML = """
       </label>
     </div>
 
-    <button type="submit">Calcola PM2.5</button>
+    <button type="submit">Calcola</button>
   </form>
 
   <div id="error"></div>
@@ -159,6 +165,7 @@ def predict():
         dow   = int(data['dow'])
         wd_val = WD_ENC.get(data['wd'], 0)
 
+        # Costruzione array di input per il modello
         features = np.array([[
             float(data['SO2']),
             float(data['NO2']),
