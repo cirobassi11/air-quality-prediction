@@ -5,34 +5,18 @@ import numpy as np
 app = Flask(__name__)
 model = joblib.load('model_xgb.pkl')
 
-# Nomi delle stazioni
-STATIONS = ['Aotizhongxin', 'Changping', 'Dingling', 'Dongsi', 'Guanyuan', 'Gucheng', 'Huairou', 'Nongzhanguan', 'Shunyi', 'Tiantan', 'Wanliu', 'Wanshouxigong']
+STATIONS = ['Aotizhongxin', 'Changping', 'Dingling', 'Dongsi', 'Guanyuan', 'Gucheng',
+            'Huairou', 'Nongzhanguan', 'Shunyi', 'Tiantan', 'Wanliu', 'Wanshouxigong']
 
-# Direzioni del vento
-WD_OPTIONS = ['E', 'ENE', 'ESE', 'N', 'NE', 'NNE', 'NNW', 'NW', 'S', 'SE', 'SSE', 'SSW', 'SW', 'W', 'WNW', 'WSW']
+WD_OPTIONS = ['E', 'ENE', 'ESE', 'N', 'NE', 'NNE', 'NNW', 'NW',
+              'S', 'SE', 'SSE', 'SSW', 'SW', 'W', 'WNW', 'WSW']
 
-# Valori medi di PM2.5 per stazione
 STATION_ENC = {
-    'Aotizhongxin': 83.4, 'Changping': 71.2, 'Dingling': 63.8,
-    'Dongsi': 85.1, 'Guanyuan': 82.7, 'Gucheng': 88.3,
-    'Huairou': 66.4, 'Nongzhanguan': 84.9, 'Shunyi': 74.1,
-    'Tiantan': 83.6, 'Wanliu': 82.1, 'Wanshouxigong': 84.2
+    'Aotizhongxin': 83.4, 'Changping': 71.2, 'Dingling': 63.8, 'Dongsi': 85.1,
+    'Guanyuan': 82.7, 'Gucheng': 88.3, 'Huairou': 66.4, 'Nongzhanguan': 84.9,
+    'Shunyi': 74.1, 'Tiantan': 83.6, 'Wanliu': 82.1, 'Wanshouxigong': 84.2
 }
 
-# Mappatura direzione del vento -> indice numerico
-WD_ENC = {wd: i for i, wd in enumerate(WD_OPTIONS)}
-
-# Classificazione AQI per PM2.5
-AQI_BINS = [
-    (50,  'Eccellente',              '#2ecc71'),
-    (100, 'Buono',                   '#f1c40f'),
-    (150, 'Leggermente Inquinato',   '#e67e22'),
-    (200, 'Moderatamente Inquinato', '#e74c3c'),
-    (300, 'Fortemente Inquinato',    '#9b59b6'),
-    (float('inf'), 'Seriamente Inquinato', '#922b21'),
-]
-
-# Pagina HTML
 HTML = """
 <!DOCTYPE html>
 <html lang="it">
@@ -159,30 +143,23 @@ def index():
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        data = request.get_json()
-        hour  = int(data['hour'])
-        month = int(data['month'])
-        dow   = int(data['dow'])
-        wd_val = WD_ENC.get(data['wd'], 0)
+        d = request.get_json()
+        hour, month, dow = int(d['hour']), int(d['month']), int(d['dow'])
+        wd = WD_OPTIONS.index(d['wd']) if d['wd'] in WD_OPTIONS else 0
 
-        # Costruzione array di input per il modello
+        cyc = lambda v, p: (np.sin(2 * np.pi * v / p), np.cos(2 * np.pi * v / p))
+        hour_s, hour_c   = cyc(hour, 24)
+        month_s, month_c = cyc(month, 12)
+        dow_s, dow_c     = cyc(dow, 7)
+        wd_s, wd_c       = cyc(wd, len(WD_OPTIONS))
+
         features = np.array([[
-            float(data['SO2']),
-            float(data['NO2']),
-            float(data['CO']),
-            float(data['O3']),
-            float(data['TEMP']),
-            float(data['PRES']),
-            float(data['DEWP']),
-            float(data['RAIN']),
-            float(data['WSPM']),
-            np.sin(2 * np.pi * hour  / 24), np.cos(2 * np.pi * hour  / 24),
-            np.sin(2 * np.pi * month / 12), np.cos(2 * np.pi * month / 12),
+            float(d['SO2']), float(d['NO2']), float(d['CO']), float(d['O3']),
+            float(d['TEMP']), float(d['PRES']), float(d['DEWP']), float(d['RAIN']), float(d['WSPM']),
+            hour_s, hour_c, month_s, month_c,
             1 if dow >= 5 else 0,
-            np.sin(2 * np.pi * dow   / 7),  np.cos(2 * np.pi * dow   / 7),
-            np.sin(2 * np.pi * wd_val / len(WD_OPTIONS)),
-            np.cos(2 * np.pi * wd_val / len(WD_OPTIONS)),
-            STATION_ENC.get(data['station'], 80.0)
+            dow_s, dow_c, wd_s, wd_c,
+            STATION_ENC.get(d['station'], 80.0)
         ]])
 
         return jsonify({'pm25': max(0.0, float(model.predict(features)[0]))})
