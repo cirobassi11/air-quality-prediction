@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify, render_template
-import joblib
+import pickle
 import numpy as np
 
 app = Flask(__name__)
 
-model = joblib.load('model_xgb.pkl') # Carica il modello XGBoost addestrato
+# Carica il modello XGBoost addestrato
+with open('model_xgb.pkl', 'rb') as f:
+    model = pickle.load(f)
 
 STATIONS = ['Aotizhongxin', 'Changping', 'Dingling', 'Dongsi', 'Guanyuan', 'Gucheng', 'Huairou', 'Nongzhanguan', 'Shunyi', 'Tiantan', 'Wanliu', 'Wanshouxigong']
 
