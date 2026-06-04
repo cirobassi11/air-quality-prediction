@@ -14,6 +14,9 @@ WD_OPTIONS = ['E', 'ENE', 'ESE', 'N', 'NE', 'NNE', 'NNW', 'NW', 'S', 'SE', 'SSE'
 
 STATION_ENC = { 'Aotizhongxin': 83.4, 'Changping': 71.2, 'Dingling': 63.8, 'Dongsi': 85.1, 'Guanyuan': 82.7, 'Gucheng': 88.3, 'Huairou': 66.4, 'Nongzhanguan': 84.9, 'Shunyi': 74.1, 'Tiantan': 83.6, 'Wanliu': 82.1, 'Wanshouxigong': 84.2 }
 
+# Direzione del vento in gradi
+WD_TO_DEG = { 'N': 0, 'NNE': 22.5, 'NE': 45, 'ENE': 67.5, 'E': 90, 'ESE': 112.5, 'SE': 135, 'SSE': 157.5, 'S': 180, 'SSW': 202.5, 'SW': 225, 'WSW': 247.5, 'W': 270, 'WNW': 292.5, 'NW': 315, 'NNW': 337.5 }
+
 @app.route('/') # Quando l'utente accede a http://localhost:5000/ esegue la funzione index()
 def index():
     # Restituisce la pagina index.html passando le stazioni e le opzioni di direzione del vento
@@ -39,17 +42,17 @@ def predict():
             if float(d[field]) < 0:
                 return jsonify({'error': f'{field} non può essere negativo'}), 400
 
-        # Converte la direzione del vento in un indice 0–15
-        wd = WD_OPTIONS.index(d['wd']) if d['wd'] in WD_OPTIONS else 0
-
         # Codifica le variabili cicliche
         cyc = lambda v, p: (np.sin(2 * np.pi * v / p), np.cos(2 * np.pi * v / p))
 
-        # Codifica ciclica di ora, mese, giorno settimana e direzione del vento
+        # Codifica ciclica di ora, mese e giorno settimana
         hour_s, hour_c   = cyc(hour, 24)
         month_s, month_c = cyc(month, 12)
         dow_s, dow_c     = cyc(dow, 7)
-        wd_s, wd_c       = cyc(wd, 16)
+
+        # Codifica ciclica della direzione del vento tramite i gradi della bussola
+        wd_rad = np.deg2rad(WD_TO_DEG.get(d['wd'], 0))
+        wd_s, wd_c = np.sin(wd_rad), np.cos(wd_rad)
 
         # Vettore di input per il modello
         features = np.array([[
