@@ -14,7 +14,7 @@
     <div class="grid">
       <label>Stazione
         <select name="station">
-          {% for s in stations %}<option value="{{ s }}">{{ s }}</option>{% endfor %} </select> <!-- Riempie il menu con le stazioni disponibili --->
+          {% for s in stations %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
         </select>
       </label>
       <label>Ora (0–23)               <input type="number" name="hour"  min="0" max="23" value="12"></label>
@@ -39,7 +39,7 @@
       <label>WSPM (m/s)  <input type="number" name="WSPM" step="0.1" value="2"></label>
       <label>Direzione vento
         <select name="wd">
-          {% for w in wd_options %}<option value="{{ w }}">{{ w }}</option>{% endfor %} <!-- Riempie il menu con le opzioni di direzione del vento disponibili --->
+          {% for w in wd_options %}<option value="{{ w }}">{{ w }}</option>{% endfor %} <!-- Riempie il menu con le opzioni di direzione del vento disponibili -->
         </select>
       </label>
     </div>
@@ -69,6 +69,7 @@
     document.getElementById('form').addEventListener('submit', async e => {
       e.preventDefault(); // Non fa ricaricare la pagina
       const errEl = document.getElementById('error'); // Nasconde eventuali errori precedenti
+      errEl.style.display = 'none';
       try {
         // Invia i dati del form al server e attende la risposta con la previsione del PM2.5
         const res  = await fetch('/predict', {
