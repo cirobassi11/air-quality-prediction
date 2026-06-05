@@ -50,7 +50,7 @@ def predict():
         month_s, month_c = cyc(month, 12)
         dow_s, dow_c     = cyc(dow, 7)
 
-        # Codifica ciclica della direzione del vento tramite i gradi della bussola
+        # Codifica ciclica della direzione del vento
         wd_rad = np.deg2rad(WD_TO_DEG.get(d['wd'], 0))
         wd_s, wd_c = np.sin(wd_rad), np.cos(wd_rad)
 
